@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-var mockSolvableResult int
-
 type Case struct {
 	Pairs    []Pair
 	Solution string
@@ -36,8 +34,22 @@ func (c *Case) ToSolutionString(caseCount int) string {
 }
 
 func (c *Case) IsSolvable() bool {
-	mockSolvableResult++
-	return mockSolvableResult%2 == 0
+	var (
+		samePrefix bool
+		matchCount int
+	)
+
+	for _, pair := range c.Pairs {
+		if matchCount > 1 {
+			return false
+		}
+		if strings.HasPrefix(pair.A, pair.B) || strings.HasPrefix(pair.B, pair.A) {
+			samePrefix = true
+			matchCount++
+		}
+	}
+
+	return samePrefix
 }
 
 func (c *Case) Solve() {
@@ -118,6 +130,8 @@ func emilPuzzle(inputData []string) {
 		splitData = strings.Split(data, " ")
 		cases[len(cases)-1].AddPair(splitData[0], splitData[1])
 	}
+
+	fmt.Println("Cases len:", len(cases))
 
 	for i, c := range cases {
 		c.Solve()
