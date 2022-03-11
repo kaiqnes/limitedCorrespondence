@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func (c *Case) ToSolutionString(caseCount int) string {
 
 func (c *Case) IsSolvable() bool {
 	var (
-		samePrefix bool
+		isSolvable bool
 		matchCount int
 	)
 
@@ -44,45 +45,88 @@ func (c *Case) IsSolvable() bool {
 			return false
 		}
 		if strings.HasPrefix(pair.A, pair.B) || strings.HasPrefix(pair.B, pair.A) {
-			samePrefix = true
+			isSolvable = true
 			matchCount++
 		}
 	}
 
-	return samePrefix
+	return isSolvable
 }
 
 func (c *Case) Solve() {
 	if c.IsSolvable() {
-		var solution string
-		// Solving case here
-		solution = "mocksolution"
-
-		c.Solution = solution
+		c.Decode("", "", c.Pairs)
 	} else {
 		c.Solution = "IMPOSSIBLE"
 	}
 }
 
-/*
-## Emil's Puzzle
-- Read data from file;
-- Split data into groups of cases:
--- A case contains an init (int), pairs (two space-separated lowercase alphabetic strings) and three sequences (a
-   concatenated string from A' pairs, a concatenated string from B' pairs and a decoded sequence);
-- For each case:
--- Verify if case is solvable:
---- If no, add into case.solution a string indicating that this case is impossible to solve (Ex: "Case n: IMPOSSIBLE");
---- If yes, decode a sequence and add result into case.solution (Ex: "Case n: abcdefgh");
--- Print solution;
-*/
+func (c *Case) Decode(sequenceA, sequenceB string, pairs []Pair) (string, string, []Pair) {
+	var partialA, partialB string
+	for index, pair := range pairs {
+		if strings.EqualFold(pair.A, pair.B) {
+			remainingPairs := removeCurrentIndex(index, pairs)
+			return c.Decode(sequenceA, sequenceB, remainingPairs)
+		}
+		partialA = sequenceA + pair.A
+		partialB = sequenceB + pair.B
+		if strings.HasPrefix(partialA, partialB) || strings.HasPrefix(partialB, partialA) {
+			if len(partialA) > len(partialB) {
+				sequenceA = partialA
+				sequenceB = partialB
+				remainingPairs := removeCurrentIndex(index, pairs)
+				return c.Decode(sequenceA, sequenceB, remainingPairs)
+			} else {
+				sequenceA = partialA
+				sequenceB = partialB
+				remainingPairs := removeCurrentIndex(index, pairs)
+				return c.Decode(sequenceA, sequenceB, remainingPairs)
+			}
+		}
+	}
 
-func main() {
-	executeFuncWithTimeTrack("Emil puzzle", problemB)
+	if sequenceA == sequenceB {
+		c.Solution = sequenceA
+	} else {
+		c.Solution = "IMPOSSIBLE"
+	}
+	return "", "", nil
 }
 
-func readDataFromFile(filename string) (result []string) {
-	inputFile := getFile(filename)
+func removeCurrentIndex(index int, pairs []Pair) (result []Pair) {
+	for i, pair := range pairs {
+		if i == index {
+			continue
+		}
+		result = append(result, pair)
+	}
+	return
+}
+
+func main() {
+	problemB()
+}
+
+func readData() (inputData []string) {
+	var count int
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
+		inputData = append(inputData, scanner.Text())
+		if len(inputData) > 0 {
+			log.Println(inputData[count])
+			count++
+		}
+	}
+
+	return
+}
+
+func readDataFromFile() (inputData []string) {
+	inputFile := getFile("sample-01.in")
 	defer inputFile.Close()
 
 	reader := bufio.NewReader(inputFile)
@@ -95,7 +139,7 @@ func readDataFromFile(filename string) (result []string) {
 		if err != nil {
 			panic(err)
 		}
-		result = append(result, string(line))
+		inputData = append(inputData, string(line))
 	}
 
 	return
@@ -110,7 +154,8 @@ func getFile(fileName string) *os.File {
 }
 
 func problemB() {
-	inputData := readDataFromFile("sample.in")
+	//inputData := readDataFromFile()
+	inputData := readData()
 
 	emilPuzzle(inputData)
 }
@@ -130,8 +175,6 @@ func emilPuzzle(inputData []string) {
 		splitData = strings.Split(data, " ")
 		cases[len(cases)-1].AddPair(splitData[0], splitData[1])
 	}
-
-	fmt.Println("Cases len:", len(cases))
 
 	for i, c := range cases {
 		c.Solve()
